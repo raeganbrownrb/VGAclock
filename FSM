@@ -1,0 +1,219 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+entity FSM1 is
+port ( clk , reset, hitter,pms,pms2: in std_logic;
+switch , pause , watch, resets, ent, editor, times: out std_logic;
+state: out std_logic_vector (2 downto 0);
+M : out std_logic_vector (1 downto 0);
+button, C1,C2,C3,C4,S1,S2,S3,S4, CL1, CL2, Cl3, Cl4 : in std_logic_vector ( 3 downto 0);
+values : out std_logic_vector (3 downto 0);
+out1,out2,out3,out4: out std_logic_vector(3 downto 0));
+end;
+architecture beh of FSM1 is
+signal slow: std_logic;
+signal number : std_logic_vector ( 3 downto 0):= "0000";
+signal enters,PS,ps2: std_logic:= '0';
+signal cs, ns : std_logic_vector (2 downto 0) := "000";--clock divider slows clock 
+component CLockDivider
+port(clk : in std_logic;
+SlowClock :out std_logic);
+end component;
+begin
+state <= cs;
+PS <= PMS;
+ps2 <= pms2;
+instance1 :  clockdivider
+port map (clk => clk, slowclock => slow);
+process(slow, reset)
+begin
+if reset = '1' then
+cs <= "000";
+elsif (slow'event and slow= '1') then
+cs <= ns;
+end if;
+end process;
+process(pms, cs)
+begin 
+case cs is
+when "000" =>
+if ps = '0' then
+M <= "00"; --AM background activated
+elsif ps = '1' then
+M <= "01";--PM background activated
+end if;
+when "001" =>
+if ps2 = '0' then
+times <= '0';--AM background activatedin clock setup
+M <= "10";
+elsif ps2 = '1' then
+times <= '1';--AM background activated in clock setup
+M <= "10";
+end if;
+when "010" =>
+if ps2 = '0' then
+times <= '0';
+M <= "10";
+elsif ps2 = '1' then
+times <= '1';
+M <= "10";
+end if;
+when "011" =>
+M <= "11";--color for stopwatch background
+when "100" =>
+M <= "11";--color for stopwatch background
+when others =>
+end case;
+end process;
+process (cs,button, hitter,C1,C2,C3,C4,S1,S2,S3,S4,cl1, cl2, cl3, cl4, enters, number )
+begin
+case cs is
+when "000" => --clock mode
+watch <= '0';
+out1 <= C1; --output from clock displayed
+out2 <= C2;
+out3 <= C3;
+out4 <= C4;
+enters <= '0'; --enter not pressed
+editor <= '0';--not in clock setups
+witch <= '0';
+number <= "0000";
+if button = "0001" then 
+if hitter = '1' then
+ns <= "011"; --stopwatch mode
+end if;
+elsif button = "0100" then --clock setup
+if hitter = '1' then
+ns <= "001";
+end if;
+elsif hitter <= '0' then
+ns <= cs;
+else ns <= "000";
+end if;
+when "001" => --clock setupwatch <= '0';
+out1 <= Cl1; --clock setup output sent to VGA
+out2 <= Cl2;
+out3 <= Cl3;
+out4 <= Cl4;
+enters <= '0';
+editor <= '1';
+switch <= '0';
+number <= number;
+if button = "0000" then  --assigns values to number pressed button
+if hitter = '1' then
+number <= "0000";
+end if;
+elsif button = "0001" then
+if hitter = '1' then
+number <= "0001";
+end if;
+elsif button = "0010" then
+if hitter = '1' then
+number <= "0010";
+end if;
+elsif button = "0011" then 
+if hitter = '1' then
+number <= "0011";
+end if;
+elsif button = "0100" then 
+if hitter = '1' then
+number <= "0100";
+end if;
+elsif button = "0101" then 
+if hitter = '1' then
+number <= "0101";
+end if;
+elsif button = "0110" then 
+if hitter = '1' then
+number <= "0110";
+end if;
+elsif button = "0111" then 
+if hitter = '1' then
+number <= "0111";
+end if;
+elsif button = "1000" then 
+if hitter = '1' then
+number <= "1000";
+end if;
+elsif button = "1001" then 
+if hitter = '1' then
+number <= "1001";
+end if;
+elsif button = "1110" then--press enter
+number <= number;--if user puts an invalid entry remains in clock setup
+if ((cl2 = "1111") or (cl3 = "1111") or (cl4 = "1111")) or ((Cl4 = "0000") and (cl3 = "0000")) then
+ns <= cs;
+else
+ns <= "010";
+end if;
+elsenumber <= number;
+ns <= cs;
+end if;
+when "010" =>
+watch <= '0';
+out1 <= Cl1;
+out2 <= Cl2;
+out3 <= Cl3;
+out4 <= Cl4;
+enters <= '1';
+editor <= '0';
+if button = "0100" then--return to clock
+if hitter = '1' then
+if enters = '1' then
+switch <= '1';
+enters <= '0';
+ns <= "000";
+end if;
+end if;
+else
+ns <= cs;
+end if;
+when "011" => --stopwatch pause mode
+out1 <= S1;
+out2 <= S2;
+out3 <= S3;
+out4 <= S4;
+watch <= '1';
+switch <= '0';
+enters <= '0';
+editor <= '0';
+number <= "0000";  
+if button = "0001" then
+if hitter ='1' then
+ns <= "000";
+end if;
+elsif button = "0010" then
+if hitter = '1' then
+ns <= "100";
+end if;
+else  ns <= "011";
+end if;
+when "100" =>--stopwatch active mode
+out1 <= S1;
+out2 <= S2;
+out3 <= S3;
+out4 <= S4;
+watch <= '1';
+switch <= '0';
+enters <= '0';
+editor <= '0';
+number <= "0000";
+if button = "0001" then
+if hitter = '1' then
+ns <= "000";
+end if;
+elsif button = "0010" then
+if hitter = '1' then
+ns <= "011";
+end if;
+else ns <= "100";
+end if;
+when others =>ns <= "000";
+end case;
+end process;--resets stopwatch
+resets <= '1' when ((button = "0011") and (ns = "011"))else '0';--resets 
+pause <= '0' when ((button = "0010") and (ns = "100")) else '1';
+values <=number;
+ent <= enters;
+end Beh
