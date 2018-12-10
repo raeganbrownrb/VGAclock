@@ -1,0 +1,145 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.std_logic_unsigned.all;
+entity clock1 is
+port (clk1, reset1, set, edit: in STD_LOGIC;
+digit : in std_logic_vector (4 downto 0);
+choice: in std_logic_vector (3 downto 0);
+change, change1 : out std_logic;
+number1, number2, number3,number4 : out std_logic_vector(3 downto 0);
+number5, number6, number7,number8 : out std_logic_vector(3 downto 0));
+end clock1;
+architecture beh of clock1 is--instantiated time to 12:00 AM at startup
+signal nums1: std_logic_vector(3 downto 0):= "0000";
+signal nums2: std_logic_vector(3 downto 0):= "0000" ;
+signal nums3: std_logic_vector(3 downto 0):= "0010";
+signal nums4: std_logic_vector(3 downto 0):="0001";
+signal numy1, numy2, numy3, numy4 : std_logic_vector(3 downto 0):= "0000" ;
+signal counter: STD_LOGIC_VECTOR (27 downto 0);signal enable: std_logic;
+signal sec : std_logic_vector (5 downto 0):= "000000";
+signal AMPM,pmam : std_logic := '0';begin   change1 <= AMPM;
+number1 <= nums1;
+number2 <= nums2;
+number3 <= nums3;
+number4 <= nums4;
+number5 <= numy1;
+number6 <= numy2;
+number7 <= numy3;
+number8 <= numy4;
+process(clk1, reset1)Begin--Code found online to slow clock to seconds speed
+if(reset1='1') then
+counter <= (others => '0');
+elsif(clk1' event and clk1 = '1') then
+if(counter>=x"5F5E0FF") then
+counter <= (others => '0');
+else
+counter <= counter + "0000001";
+end if;
+end if;
+end process;
+enable <= '1' when counter=x"5F5E0FF" else '0';
+--End Code found online
+process(clk1, reset1,set, enable, sec, nums1,numy1,numy2,ampm,pmam,  nums2,nums3,numy3, numy4,nums4, digit, choice,edit)
+beginif(reset1='1') then
+nums1 <= (others => '0');
+nums2 <= (others => '0');
+nums3 <= (others => '0');
+nums4 <= (others => '0');
+elsif edit = '1' then --In clock setup
+if digit = "00001" then --checks last switch to change AM/PM
+if choice = "0000" then
+AMPM <= '0';--AM
+elsif choice = "0001" then
+AMPM <= '1';--PM
+end 
+if;
+elsif digit = "00010" then--Manipulates digit places based on digit input
+numy1 <= choice;
+elsif digit = "00100" then --digit in tens place can not exceed 5
+case choice is
+when "0000" =>numy2 <= "0000";
+when "0001" =>numy2 <= "0001";
+when "0010" =>numy2 <= "0010";
+when "0011" =>numy2 <= "0011";
+when "0100" =>numy2 <= "0100";
+when "0101" =>numy2 <= "0101";
+when others => numy2 <= "1111";
+end case;
+elsif digit = "01000" then
+if numy4 = "0000" then
+numy3 <= choice;
+else
+case choice is  --digit in hours place can not exceed 2 when tens  
+--hours place is = 1
+when "0000" =>numy3 <= "0000";
+when "0001" =>numy3 <= "0001";
+when "0010" =>numy3 <= "0010";
+when others => numy3 <= "1111";
+end case;
+end if;
+elsif digit = "10000" then  --digit will automatically be 0 if number in hours place is greater than 2
+case choice is
+when "0000" =>numy4 <="0000";
+when "0001" =>
+if "0010" < numy3 then
+numy4 <= "0000";
+else 
+numy4 <= "0001";
+end if;
+when others => numy4 <= "1111";
+end case;
+else
+numy1 <= numy1;
+numy2 <= numy2;
+numy3 <= numy3;
+numy4 <= numy4;
+ampm <= ampm;
+end if;
+elsif set = '1' then
+nums1 <= numy1;
+nums2 <= numy2;
+nums3 <= numy3;
+nums4 <= numy4; 
+PMAM <= AMPM;
+elsif(clk1' event and clk1 = '1') then
+if(enable = '1') then
+sec <= sec + "000001";
+if (sec = "111011") then--checks 12:59 to wrap to 1:00
+if (nums4 = "0001") and (nums3 = "0010") and (nums2 = "0101")  and (nums1 = "1001") then
+nums4 <= "0000";
+nums3 <= "0001"; 
+nums2 <= "0000";
+nums1 <= "0000";
+end if;
+sec <= "000000";
+nums1 <= nums1 + "0001";--and increment a min
+if (nums1 = "1001") then --min can not be higher than 9
+nums1 <= "0000"; --after hitting 9 , it resets
+nums2 <= nums2 + "0001";--tenmin place increments by 1
+if (nums2 = "0101") then
+nums2<= "0000"; --after hitting5 , it resets
+nums3 <= nums3 + "0001"; --hr place is incremented
+if (nums4 = "0001") then
+if (nums3 = "0010") then
+nums3 <= "0001";
+else nums3 <= nums3 + "0001"; 
+end if;
+elsif (nums4 = "0000") then
+if nums3 = "1001" then 
+nums3 <= "0000";
+nums4 <= nums4 + "0001"; --tenhr incremented
+if (nums4 = "0001") then nums4 <= "0000";
+end if;
+end if;
+end if;
+end if;
+end if;--toggles AM and PM when clock reaches 12:00
+if (nums4 = "0001") and (nums3 = "0001") and (nums2 = "0101")  and(nums1 = "1001") then
+PMAM <= not PMAM;
+end if;
+end if;
+end if;
+end if;
+end process;
+change <= PMAM;
+end beh;
