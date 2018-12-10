@@ -216,4 +216,4 @@ resets <= '1' when ((button = "0011") and (ns = "011"))else '0';--resets
 pause <= '0' when ((button = "0010") and (ns = "100")) else '1';
 values <=number;
 ent <= enters;
-end Beh
+end Beh;
